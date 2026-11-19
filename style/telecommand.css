@@ -29,3 +29,12 @@ button.jp-mod-styled.telecommand-button:active {
   width: 100%;
   height: 100%;
 }
+
+button.jp-mod-styled.telecommand-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.jp-mod-styled.telecommand-button:disabled:active {
+  outline: none;
+}

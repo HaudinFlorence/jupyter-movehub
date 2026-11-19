@@ -1,8 +1,6 @@
 import React from 'react';
 import { useEffect, useState, useRef } from 'react';
 import { Poll } from '@lumino/polling';
-import { DeviceInfo } from '../movehub-control/types';
-import { defaultDeviceInfo } from '../moveHub';
 import { MoveHub } from '../moveHub';
 import { IMoveHubPanelWithThemeProps } from './MoveHubPanel';
 import { LabIcon } from '@jupyterlab/ui-components';
@@ -89,36 +87,34 @@ const CONTROLS: IControl[] = [
 
 export function Telecommand({ device }: IMoveHubPanelWithThemeProps) {
   const pressStart = useRef(0);
-  const [deviceState, setDeviceState] = useState<DeviceInfo>(defaultDeviceInfo);
+  const [connected, setConnected] = useState(
+    device.deviceInfo?.connected === true
+  );
 
   useEffect(() => {
     const poll = new Poll({
       auto: true,
-      name: `telecommand-polling`,
+      name: 'telecommand-polling',
       factory: async () => {
-        setDeviceState({ ...device.deviceInfo });
+        setConnected(device.deviceInfo?.connected === true);
       },
-      frequency: {
-        interval: 200,
-        backoff: true
-      },
+      frequency: { interval: 200, backoff: true },
       standby: 'when-hidden'
     });
 
-    poll.start();
-
     return () => {
-      poll.stop();
+      poll.dispose();
     };
-  }, [device.deviceInfo]);
-
-  const connected = deviceState.connected === true;
+  }, [device]);
 
   const handleDown = () => {
     pressStart.current = Date.now();
   };
 
   const handleUp = async ({ action, direction }: IControl) => {
+    if (!connected) {
+      return;
+    }
     if (action === 'stop') {
       device.stop();
       return;
@@ -140,6 +136,11 @@ export function Telecommand({ device }: IMoveHubPanelWithThemeProps) {
   return (
     <section className="dashboard-card">
       <h2 className="dashboard-card-title">Remote control</h2>
+      {!connected && (
+        <div className="dashboard-card-muted">
+          Connect a device to use the controls
+        </div>
+      )}
       <div className="dashboard-card-muted">
         Short press: drive 20 cm or turn 90°
       </div>
@@ -156,7 +157,7 @@ export function Telecommand({ device }: IMoveHubPanelWithThemeProps) {
               .filter(Boolean)
               .join(' ')}
             aria-label={control.label}
-            title={control.label}
+            title={connected ? control.label : 'No device connected'}
             onMouseDown={handleDown}
             onMouseUp={() => handleUp(control)}
             disabled={!connected}
